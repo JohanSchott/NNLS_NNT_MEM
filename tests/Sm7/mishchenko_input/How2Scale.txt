@@ -1,0 +1,8 @@
+Scale mats.dat and save to scaled.dat according to:
+
+b=0.6906919
+s=2.3208822
+
+G(i*w_n) = (S(i*w_n)-b)/s
+
+so G(i*w_n->i*inf) -> 0 - i*1/w_n
