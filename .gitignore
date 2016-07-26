@@ -1,0 +1,6 @@
+# Machine dependent Makefile 
+src/Makefile
+
+# binary
+src/NNLS_NNT_MEM
+
