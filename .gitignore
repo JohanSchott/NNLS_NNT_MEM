@@ -1,6 +1,12 @@
 # Machine dependent Makefile 
 src/Makefile
 
+# object files
+src/*.o
+
+#  module files
+src/*.mod
+
 # binary
 src/NNLS_NNT_MEM
 
