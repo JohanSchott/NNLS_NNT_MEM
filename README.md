@@ -1,7 +1,7 @@
-# Least Square, Tikhonov, Maximum Entropy Method  (LSTMEM)
+# NNLS, NNT, MEM
 This is a program for doing analytical continuations using one of the methods:
-- Least Square
-- Tikhonov
+- Non Negative Least Squares
+- Non Negative Tikhonov
 - Maximum Entropy Metod
 
 The input has to be Matsubara frequency data. Three columns are expected in the input file. 
@@ -14,3 +14,4 @@ The spectral function will be calculated.
 A smeared spectral function is also printed as output. 
 It is calculated by taking the spectral function (determined just above the real axis) and using the Hilbert transform to evaluate the spectral function a distance $\delta$ above the real axis ($\frac{-1}{\pi}\text{Im}[G(\omega+i\delta)]$). 
 
+The binary is called `NNLS_NNT_MEM`
