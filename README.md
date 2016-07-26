@@ -23,6 +23,7 @@ In the `tests` folder a few test models exist:
 - `betheU4`
 - `Haverkort_wc1_dw0.5`
 - `Sm7`
+
 A good start for using the program is to try these tests. Perhaps a good beginning is also to modify the attached `ac.inp` files. One thing one can do is to try both NNLS, NNT and MEM for the test models.
 
 #### Output
