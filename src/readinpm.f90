@@ -9,6 +9,7 @@ use input
 use leastsquare
 use asym
 use savem
+use gitversion
 implicit none
 
 contains
@@ -78,16 +79,8 @@ close(54)
 
 !Write parameters read and used from input file  
 open(23,file=trim(proj)//"_info.dat")
-write(23,'(a)') "Program version: 1.9"
-write(23,'(a)') "[28/01/2016] Faster and better smearing routine"
-write(23,'(a)') "[18/05/2015] More defalut model options for MEM and NNTDM"
-write(23,'(a)') "[18/05/2015] Deviation between smeared spectrum and exact spectrum is calculated on finer grid"
-write(23,'(a)') "[17/05/2015] Print deviation between smeared spectra and exact spectra"
-write(23,'(a)') "[20/04/2015] Add output file proj_smear.dat, using input eim to smear spectra."
-write(23,'(a)') "[16/04/2015] Logarithmic mesh, with odd N, improves metallic results a lot."
-write(23,'(a)') "[16/04/2015] MaxEnt also included as solver==4"
-write(23,'(a)') "[10/04/2015] Susceptibilities and Self-energies accessible"
-write(23,'(a)') "[09/04/2015] NNLS and NNTikhonov is implemented (and tested for Sm7)"
+write(23,'(a,a)') " git hash number: ", git_revision
+write(23,'(a)') "Program version: 2.0"
 write(23,*)
 write(23,*) '#Parameter values read and used from input file:'
 write(23,*) 'fm: ',trim(fm)

@@ -1,31 +1,56 @@
-# Modules needed on matter:
+# Modules
+
+# On Matter:
 # module load intel/12.1.4  mkl/10.3.10.319
-# Modules needed on India:
+
+# On India:
 # module load gcc/default  atlas/3.9.33/gcc
 
-OBJS =  fz.o settingm.o matlab.o openm.o savem.o leastsquare.o tikhonovm.o asym.o eigenm.o maxentm.o input.o     smearm.o     readinpm.o acm.o  saveacm.o     main.o
+#--------------------------------------------------------------------------------------------------------------------------
+# object files
+OBJS = fz.o settingm.o matlab.o openm.o savem.o leastsquare.o tikhonovm.o asym.o eigenm.o maxentm.o input.o smearm.o gitversion.o readinpm.o acm.o saveacm.o main.o
+
+# binary:
 PROG =  ./NNLS_NNT_MEM
 
-#LIBRARIES on India:
+#-----------------------------------------------------------------------------------------------------------------------
+
+# Libraries
+
+# On India:
 LIBS = -L${LIBRARY_PATH}  -llapack -lf77blas -lcblas -latlas -L${ZGELSQUAD} -lzgelsquad -L${DGELSDQUAD} -ldgelsdquad
-#LIBRARIES on matter:
+
+# On matter:
 #LIBS = -L$(ZGELSQUAD)  -lzgelsquad  -Nmkl -mkl=sequential
-#LIBRARIES on local computer:
+
+# On local computer:
 #LIBS =  -L${ZGELSQUAD} -lzgelsquad -L${DGELSDQUAD} -ldgelsdquad -L${LAPACKPATH} -llapack -lrefblas
 
-# Compiler on matter:
+#-----------------------------------------------------------------------------------------------------------------------
+
+# Compiler
+
+# On matter:
 #F90 = ifort 
 #F90FLAGS =  -O2
-# Compiler on India:
+
+# On India:
 F90 = gfortran 
 F90FLAGS =  -O2 # -fopenmp  -g -Wall -fbounds-check -Waliasing -fdump-core  -Wreturn-type 
-# Compiler on local computer
+
+# On local computer:
 #F90 = gfortran
 #F90FLAGS = -O2 -g #-Wall -fbounds-check -Waliasing -fdump-core  -Wreturn-type
 
 LDFLAGS = $(LIBS)
 
-all: $(PROG)
+#-----------------------------------------------------------------------------------------------------------------------
+
+all: gitR $(PROG)
+
+gitR: gitversion_template.f90
+	./setgitversion.sh 
+
 
 $(PROG): $(OBJS)
 	$(F90) $(LDFLAGS) -o $@ $(OBJS) $(LIBS)
