@@ -29,7 +29,7 @@ A good start for using the program is to try these tests. Perhaps a good beginni
 ### Output
 The spectral function will be calculated. 
 A smeared spectral function is also printed as output. 
-It is calculated by taking the spectral function (determined just above the real axis) and using the Hilbert transform to evaluate the spectral function a distance $\delta$ above the real axis ($\frac{-1}{\pi}\text{Im}[G(\omega+i\delta)]$). 
+It is calculated by taking the spectral function (determined just above the real axis) and using the Hilbert transform to evaluate the spectral function a distance $\delta$ above the real axis ( $\frac{-1}{\pi}\text{Im}[G(\omega+i\delta)]$ ). 
 
 ## Possible improvements
 - Implement kernels for imaginary time
