@@ -6,23 +6,30 @@ implicit none
 contains
 
 subroutine maxent(f,k,b,xm,x0,mtr,pr,nonegx,tolx,tolf,tolg,x)
-!If nonegx==.true. does:
-!min_{x>=0} Q(x,alpha)
-!If nonegx==.false. does:
-!min_{x} Q(x,alpha)
-!Q(x,alpha) = |k*x-b|^2 + alpha*S[x,xam] 
-!S=int x*ln(x/xm) , where S>0 for x/=xam and S=0 for x=xam
-!Returns vector x 
-!Loop over different alpha and select optimal alpha according to L-curve technique, namely min_alpha |k*x-b|^2*S
-!But to find roughly which alpha values to use, start with an iterative algorithm over alpha. An lower bound of 10^-11 for alpha is used for numerical reasons. 
-!Routine is using a modified Newton search algorithm for minimization Q(x)
-!Updates are done according to: x=xold+a*dx
-!dx is obtained from solving: hess(x)*dx=-grad(x) 
-!a is obtained by line-search minimization of: Q(xold+a*dx)
-!If line-search gives a turning x=xold+a*dx negative for some elemement, adjust those to:
-!x(i)=10^(-10) if nonegx==.true.
-!Convergence is reached when |Q(xold)-Q(x)|/Q(x) < tolf  or |grad(xold)-grad(x)|/|grad(x)| < tolg
-!Starting minimisation with point x=x0
+! If nonegx==.true. then:
+!   min_{x>=0} Q(x,alpha)
+! If nonegx==.false. then:
+!   min_{x} Q(x,alpha)
+
+! Q(x,alpha) = |k*x-b|^2 + alpha*S[x,xam] 
+! with S=int x*ln(x/xm) , where S>0 for x/=xam and S=0 for x=xam
+
+! Returns vector x 
+
+! Loop over different alpha and select optimal alpha according to L-curve technique, namely min_alpha |k*x-b|^2*S
+! But to find roughly which alpha values to use, start with an iterative algorithm over alpha. An lower bound of 10^-11 for alpha is used for numerical reasons. 
+
+! Minimization of Q(x) uses a modified Newton search algorithm.
+! Updates are done according to: x=xold+a*dx
+! dx is obtained from solving: hessian(x)*dx=-gradient(x) , where hessian and gradient is of function Q.
+! Parameter a is obtained by line-search minimization of: Q(xold+a*dx)
+! If line-search gives a turning x=xold+a*dx negative for some elemement, adjust those to:
+!   x(i)=10^(-10) if nonegx==.true.
+
+! Convergence is reached when |Q(xold)-Q(x)|/Q(x) < tolf  or |grad(xold)-grad(x)|/|grad(x)| < tolg
+
+! Starting minimisation with point x=x0
+
 implicit none
 real(kind=16),intent(in) :: f(:),k(:,:),b(:),xm(:),x0(:)
 integer,intent(in) :: mtr,pr

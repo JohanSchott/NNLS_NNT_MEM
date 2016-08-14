@@ -33,4 +33,5 @@ It is calculated by taking the spectral function (determined just above the real
 
 ## Possible improvements
 - Implement kernels for imaginary time
+- Test MINPACK's non-linear equation solver
 - Implement stochastic sampling methods  
