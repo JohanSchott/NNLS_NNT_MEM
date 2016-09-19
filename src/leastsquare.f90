@@ -295,7 +295,8 @@ do !Loop A
 enddo
 if(allocated(R)) deallocate(R)
 if(allocated(F)) deallocate(F)
-deallocate(z,w,P)
+if(allocated(P)) deallocate(P)
+deallocate(z,w)
 
 !write(*,'(a,I5,a)') "Did ",ib,"loop B iterations in total"
 write(*,'(a,I5,a)') "Did ",ia," loop A iterations"
