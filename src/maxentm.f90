@@ -16,10 +16,12 @@ subroutine maxent(f,k,b,xm,x0,mtr,pr,nonegx,tolx,tolf,tolg,x)
 
 ! Returns vector x 
 
-! Loop over different alpha and select optimal alpha according to L-curve technique, namely min_alpha |k*x-b|^2*S
-! But to find roughly which alpha values to use, start with an iterative algorithm over alpha. An lower bound of 10^-11 for alpha is used for numerical reasons. 
+! Loop over different alpha and select optimal alpha according to L-curve technique, namely 
+! min_alpha |k*x-b|^2*S
+! But to find roughly which alpha values to use, start with an iterative algorithm over alpha.
+! An lower bound of 10^-11 for alpha is used for numerical reasons. 
 
-! Minimization of Q(x) uses a modified Newton search algorithm.
+! Minimization of Q(x), for a fixed alpha, uses a modified Newton search algorithm.
 ! Updates are done according to: x=xold+a*dx
 ! dx is obtained from solving: hessian(x)*dx=-gradient(x) , where hessian and gradient is of function Q.
 ! Parameter a is obtained by line-search minimization of: Q(xold+a*dx)
@@ -43,7 +45,7 @@ integer :: ita,na
 real(kind=16) :: alpha,alpha_old
 real(kind=16),allocatable :: alphav(:),xt(:,:),qv(:),res(:),st(:)
 character(len=800) :: str
-na=10 !number of alphas
+na=15 !number of alphas
 m=size(k,1)
 n=size(k,2)
 if(allocated(x)) deallocate(x)
@@ -60,10 +62,10 @@ write(*,'(a)') "Start optimization of alpha"
 write(31,'(a)') "Start optimization of alpha"
 alpha=10q0**(-2q0) !starting guess for alpha
 alpha_old=100*alpha
-write(*,'(a,E10.3)') "alpha=",alpha
 write(31,'(a,E10.3)') "alpha=",alpha
+write(*,'(a,E10.3)') "alpha=",alpha
 ita=0
-do while( max(alpha_old/alpha,alpha/alpha_old) > 10 .and. ita<20 ) !dalpha=max(alpha_old/alpha,alpha/alpha_old)
+do while( 5 < max(alpha_old/alpha,alpha/alpha_old) .and. ita < 10 ) !dalpha=max(alpha_old/alpha,alpha/alpha_old)
    ita=ita+1
    call minQ() !update x
    lam=2*matmul(transpose(k),k)
@@ -77,86 +79,81 @@ do while( max(alpha_old/alpha,alpha/alpha_old) > 10 .and. ita<20 ) !dalpha=max(a
    alpha=residue2(x)/m*1q0/(entropy(x))*sum(eigen/(eigen+alpha))  !update alpha
    if(alpha<0q0) then
       alpha=10**(-10q0)
+      write(31,'(a)') 'Negative alpha proposed. Use a small alpha instead.'
    endif
    !mixing old and new alpha
-   alpha=10q0**(log(alpha*alpha_old)/(2*log(10q0)))
+   alpha = 10q0**(log(alpha*alpha_old)/(2*log(10q0)))
    if(alpha<1.1*10**(-10q0) ) then
+      write(31,'(a)') "alpha smaller than 10^(-10) proposed in the iterative algorithm."
+      write(31,'(a)') "alpha put to 10^(-10) instead."
       alpha=10q0**(-10q0)
-      write(*,*) "Iterative algorithm don't try alpha smaller than 10^-10."
-      write(*,*) "alpha=",alpha
-      write(31,*) "alpha=",alpha
       exit
    else
-      write(*,*) "alpha=",alpha
       write(31,*) "alpha=",alpha
+      write(*,*) "alpha=",alpha
    endif
 enddo
 deallocate(lam,eigen)
 
+write(31,'(a)') 
 write(*,'(a)') "Start exploring L-curve for optimal alpha"
 write(31,'(a)') "Start exploring L-curve for optimal alpha"
-write(*,'(a,E10.3)') "Search around converged alpha value, which is alpha=",alpha
 write(31,'(a,E10.3)') "Search around converged alpha value, which is alpha=",alpha
 allocate(alphav(na),xt(n,na),qv(na),res(na),st(na))
+st = -1
 !alphav= [ (10q0**(-(8q0+(i-1q0)*(12q0-8q0)/(na-1q0))),i=1,na) ]
-alphav= [ (alpha*10q0**(-(-3q0+(i-1q0)*(3q0+1q0)/(na-1q0))),i=1,na) ]
+alphav= [ (alpha*10q0**(-(-3q0+(i-1q0)*(3q0+2q0)/(na-1q0))),i=1,na) ]
 ia=0
 do ita=1,na !Loop A
    ia=ia+1
    alpha=alphav(ita)
-   write(*,'(a,E10.3)') "alpha=",alpha
    write(31,'(a,E10.3)') "alpha=",alpha
+   write(*,'(a,E10.3)') "alpha=",alpha
    call minQ() !update x
    !save solution for particular alpha
    xt(:,ita)=x
    qv(ita)=Q(x) 
    res(ita)=sqrt(residue2(x)) ! |A*x-b|
    st(ita)=entropy(x)  ! S , entropy
+   if (isnan(qv(ita))) return  ! check for NaN 
 enddo !end loop A
-!check so at least two solutions with positive entropy
+!count number of alphas giving positive entropy. Want at least two.
 i=0
-do ita=1,na
+do ita=1,ia
    if(st(ita)>0) i=i+1
 enddo
+
 do while(i<2) !If less than two solutions with positive entropy, try smaller alphas
-   write(31,*) "Only",i,"solutions with positive entropy found." 
-   write(31,*) "Try to use smaller alphas. use alpha from",alpha*10**(1q0)," down to",alpha*10**(-2q0)
-   write(*,*) "Only",i,"solutions with positive entropy found." 
-   write(*,*) "Try to use smaller alphas. use alpha from",alpha*10**(1q0)," down to",alpha*10**(-2q0)
+   write(31,'(a)') "Only",i,"solutions with positive entropy found." 
+   write(31,'(a)') "Try to use smaller alphas. use alpha from",alpha*10**(1q0)," down to",alpha*10**(-0.5q0)
    alphav= [ (alpha*10q0**(-(-1q0+(i-1q0)*(0.5q0+1q0)/(na-1q0))),i=1,na) ]
    ia=0
+   st = -1
    do ita=1,na !Loop A
       ia=ia+1
       alpha=alphav(ita)
-      write(*,'(a,E10.3)') "alpha=",alpha
       write(31,'(a,E10.3)') "alpha=",alpha
+      write(*,'(a,E10.3)') "alpha=",alpha
       call minQ() !update x
       !save solution for particular alpha
       xt(:,ita)=x
       qv(ita)=Q(x) 
       res(ita)=sqrt(residue2(x)) ! |A*x-b|
       st(ita)=entropy(x)  ! S , entropy
+      if (isnan(qv(ita))) return  ! check for NaN 
    enddo !end loop A
-   !check so at least two solutions with positive entropy
+   !count number of alphas giving positive entropy. Want at least two.
    i=0
-   do ita=1,na
+   do ita=1,ia
       if(st(ita)>0) i=i+1
    enddo
 enddo
-write(31,*) i,"solutions with positive entropy found." 
-write(*,*) i,"solutions with positive entropy found." 
-
-write(31,*) "Loop A finished"
-write(*,*)
-write(*,'(a)') "MaxEnt output:"
-write(31,*)
-write(*,'(a)') "alpha          Q(x)         |A*x-b|^2         S         |A*x-b|^2*S"
-write(31,'(a)') "alpha          Q(x)         |A*x-b|^2        S         |A*x-b|^2*S"
+write(31,'(I4,a)') i," solutions with positive entropy found."
+write(31,'(a)') "Sweep over different alphas is finished. Summary of the sweep:"
+write(31,'(a)') "       alpha          Q(x)         |A*x-b|^2        S         |A*x-b|^2*S"
 do i=1,na
-   write(*,'(5E15.5)') alphav(i),qv(i),res(i)**2,st(i),log(res(i)**2*st(i))
-   write(31,'(5E15.5)') alphav(i),qv(i),res(i)**2,st(i),log(res(i)**2*st(i))
+   write(31,'(5E15.5)') alphav(i),qv(i),res(i)**2,st(i),res(i)**2*st(i)
 enddo
-write(*,*)
 str=int2str(na)
 str="("//trim(str)//"E13.4)"
 open(54,file="output_maxent_a.dat")
@@ -167,7 +164,6 @@ close(54)
 i=minloc(log(res**2*st),1)
 x=xt(:,i)
 alpha=alphav(i)
-write(*,'(a,E15.5,a,I4)') "Pick alpha=",alpha," index=",i
 write(31,'(a,E15.5,a,I4)') "Pick alpha=",alpha," index=",i
 
 write(31,*)
@@ -269,7 +265,6 @@ contains
    
    write(31,'(I5,a)') ib," iterations in Loop B."
    if(ib==ibmax) write(31,'(a)') "Warning: Minimazation using Newton calculation did not converge"
-   write(*,*)
    write(31,*)
    deallocate(dx,da,xold)
    end subroutine

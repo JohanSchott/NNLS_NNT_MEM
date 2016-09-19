@@ -22,7 +22,7 @@ integer :: i,m,ntot
 
 ntot=filelen(fn)
 m=min(real(n,kind=16),ntot*q)
-write(*,*) "Number of Matsubara points used for finding asymptotic:",m
+write(*,*) "Number of Matsubara points used for fitting the real part of the asymptotic:",m
 call openf(fn,x,y)
 allocate(f(m))
 f=x(ntot-m+1:ntot)
@@ -58,7 +58,7 @@ integer :: i,m,ntot
 
 ntot=filelen(fn)
 m=min(real(n,kind=16),ntot*q)
-write(*,*) "Number of Matsubara points used for finding asymptotic:",m
+write(*,*) "Number of Matsubara points used for fitting the imaginary part of the asymptotic:",m
 call openf(fn,x,f,y)
 deallocate(f)
 allocate(f(m))
