@@ -18,7 +18,7 @@ subroutine getFirstIndices(inputfile,startindex,N,wn,Gn)
    
     integer,allocatable :: ind(:)
     real(kind=16),allocatable :: v(:,:) !stores all ntotal matsubara points
-    integer :: i,ok !dummy index 
+    integer :: i !dummy index 
     integer :: ntotal  !nbr of elements in input file
     real(kind=16) :: tmp,tmp2,tmp3
     

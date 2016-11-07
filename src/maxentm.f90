@@ -40,12 +40,12 @@ real(kind=16),intent(in) :: tolx,tolf,tolg !specifies convergence tolerance
 real(kind=16),allocatable :: x(:)
 
 real(kind=16),allocatable :: lam(:,:),eigen(:)
-integer :: n,m,i,j,l,ia
+integer :: n,m,i,ia
 integer :: ita,na
 real(kind=16) :: alpha,alpha_old
 real(kind=16),allocatable :: alphav(:),xt(:,:),qv(:),res(:),st(:)
 character(len=800) :: str
-na=15 !number of alphas
+na=25 !number of alphas
 m=size(k,1)
 n=size(k,2)
 if(allocated(x)) deallocate(x)
@@ -177,7 +177,7 @@ contains
    subroutine minQ()
    !Finds minimun to Q(x), for a particular alpha, and update x to that point
    implicit none
-   integer :: i,j,k !local variables
+   integer :: i,j !local variables
    integer :: ib,ic,ibmax,icmax
    real(kind=16) :: a,amax
    real(kind=16),allocatable :: da(:),dx(:),xold(:)

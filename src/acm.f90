@@ -46,8 +46,6 @@ integer :: i,j,n,m
 
 real(kind=16),allocatable :: kc(:,:),bc(:)
 
-character(len=800) :: str
-
 n=size(w,1)
 m=size(wn,1)
 
@@ -70,7 +68,7 @@ elseif(ftype==3) then
    write(23,*) "Function is set to be weird Fermion"
    write(23,*) "This means sumrule value to fit to is estimated by looking at the asymptotics."
    write(23,*) "It also means that do an additional fitting, to parameter a in -a/w_n^2,&
-   where a is estimated by looking at the asymptotics"
+   &where a is estimated by looking at the asymptotics"
 elseif(ftype==4) then
    write(23,*) "Function is set to be symmetric Susceptibility"
    write(23,*) "Only fitting to Re[\chi(i*\omega_n)], using kernel:"

@@ -13,7 +13,6 @@ contains
 subroutine saveac()
 implicit none
 character(len=800) :: f
-real(kind=16),allocatable :: tmp(:),tmp2(:),tmp3(:) !temporary variables
 
 !save G(i*w_n)[rho]
 f=trim(proj)//"_mats.dat"
@@ -60,17 +59,17 @@ write(23,'(a,E13.4)') "Solver error: |k*x-b|=",a%errs(1)
 write(*,'(a,E13.4)') "Solver error: |k*x-b|=",a%errs(1)
 if(ftype==0) then
    write(23,'(a,E13.4)') "Check, should be same as above: &
-   sqrt(|G[rho]-G|^2+|int rho(w)dw-1|^2)=",sqrt(a%errm**2+(integ(a%w,a%a)-1)**2)
+   &sqrt(|G[rho]-G|^2+|int rho(w)dw-1|^2)=",sqrt(a%errm**2+(integ(a%w,a%a)-1)**2)
    write(*,'(a,E13.4)') "Check, should be same as above:  &
-   sqrt(|G[rho]-G|^2+|int rho(w)dw-1|^2)=",sqrt(a%errm**2+(integ(a%w,a%a)-1)**2)
+   &sqrt(|G[rho]-G|^2+|int rho(w)dw-1|^2)=",sqrt(a%errm**2+(integ(a%w,a%a)-1)**2)
 elseif(ftype==1 .or. ftype==2) then
    write(23,'(a,E13.4)') "Check, should be same as above: |G[rho]-G|=",a%errm
    write(*,'(a,E13.4)') "Check, should be same as above: |G[rho]-G|=",a%errm
 elseif(ftype==3) then
    write(23,'(a,E13.4)') "Check, should be same as above: &
-   sqrt(|G[rho]-G|^2+|int rho(w)dw-s|^2+|int w*rho(w)-a|^2)=",a%errm
+   &sqrt(|G[rho]-G|^2+|int rho(w)dw-s|^2+|int w*rho(w)-a|^2)=",a%errm
    write(*,'(a,E13.4)') "Check, should be same as above:  &
-   sqrt(|G[rho]-G|^2+|int rho(w)dw-s|^2+|int w*rho(w)-a|^2)=",a%errm
+   &sqrt(|G[rho]-G|^2+|int rho(w)dw-s|^2+|int w*rho(w)-a|^2)=",a%errm
 elseif(ftype==4) then
    write(23,'(a,E13.4)') "Check, should be same as above: |Re[G[rho]-G]]|=",a%errm
    write(*,'(a,E13.4)') "Check, should be same as above: |Re[G[rho]-G]|=",a%errm

@@ -18,13 +18,13 @@ PROG =  ./NNLS_NNT_MEM
 # Libraries
 
 # On India:
-#LIBS = -L${LIBRARY_PATH}  -llapack -lf77blas -lcblas -latlas -L${ZGELSQUAD} -lzgelsquad -L${DGELSDQUAD} -ldgelsdquad
+#LIBS =  -L"quad/dgels/dgels_quad" -ldgelsdquad -L"quad/zgels/zgels_quad" -lzgelsquad -L${LIBRARY_PATH}  -llapack -lf77blas -lcblas -latlas 
 
 # On matter:
-#LIBS = -L$(ZGELSQUAD)  -lzgelsquad  -Nmkl -mkl=sequential
+#LIBS = -L"quad/dgels/dgels_quad" -ldgelsdquad -L"quad/zgels/zgels_quad" -lzgelsquad -Nmkl -mkl=sequential
 
 # On local computer:
-LIBS =  -L"${ZGELSQUAD}" -lzgelsquad -L"${DGELSDQUAD}" -ldgelsdquad -L"${LAPACKPATH}" -llapack -lrefblas
+LIBS =  -L"quad/dgels/dgels_quad" -ldgelsdquad -L"quad/zgels/zgels_quad" -lzgelsquad -L"${LAPACKPATH}" -llapack -lrefblas
 
 #-----------------------------------------------------------------------------------------------------------------------
 
@@ -40,7 +40,7 @@ LIBS =  -L"${ZGELSQUAD}" -lzgelsquad -L"${DGELSDQUAD}" -ldgelsdquad -L"${LAPACKP
 
 # On local computer:
 F90 = gfortran
-F90FLAGS = -O2  # -g -Wall -fbounds-check -Waliasing -fdump-core  -Wreturn-type
+F90FLAGS = -O0   -g -Wall -fbounds-check -Waliasing -fdump-core  -Wreturn-type
 
 LDFLAGS = $(LIBS)
 

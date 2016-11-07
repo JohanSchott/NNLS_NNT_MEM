@@ -116,8 +116,7 @@ real(kind=16),intent(in) :: A(:)
 
 integer,allocatable :: d(:),e(:)
 real(kind=16),allocatable :: x(:),y(:)
-real(kind=16) :: b
-integer :: i,j,k,n,newn,m
+integer :: i,j,k,n,m
 n=size(A,1)
 allocate(x(n),y(n),d(n),sortp(n))
 x=A

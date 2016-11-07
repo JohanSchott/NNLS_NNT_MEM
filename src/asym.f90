@@ -21,7 +21,7 @@ real(kind=16),allocatable :: x(:),y(:),k(:,:),f(:)
 integer :: i,m,ntot
 
 ntot=filelen(fn)
-m=min(real(n,kind=16),ntot*q)
+m = floor(min(real(n,kind=16),ntot*q))
 write(*,*) "Number of Matsubara points used for fitting the real part of the asymptotic:",m
 call openf(fn,x,y)
 allocate(f(m))
@@ -57,7 +57,7 @@ real(kind=16),allocatable :: x(:),y(:),k(:,:),f(:)
 integer :: i,m,ntot
 
 ntot=filelen(fn)
-m=min(real(n,kind=16),ntot*q)
+m = floor(min(real(n,kind=16),ntot*q))
 write(*,*) "Number of Matsubara points used for fitting the imaginary part of the asymptotic:",m
 call openf(fn,x,f,y)
 deallocate(f)

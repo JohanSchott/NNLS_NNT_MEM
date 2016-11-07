@@ -23,12 +23,11 @@ integer :: rmeshtype
 real(kind=16) :: qasym
 integer :: nasym
 
-real(kind=16),allocatable :: we(:),wam(:) !exact dense and default dense energy
+real(kind=16),allocatable :: wam(:) ! default dense energy mesh
 real(kind=16),allocatable :: tmp(:),tmp2(:) !two temporary variables
 real(kind=16) :: ga,dx
 integer :: i,ok,N1,N2
 
-character(len=800) :: str
 
 open(54,file="ac.inp",iostat=ok)
 read(54,'(a)') 
@@ -199,8 +198,6 @@ close(23)
 if(exact) then
   call openf(fe,a%we,tmp,a%ae)
   a%ae=-1/pi*a%ae
-  !interpolate exact spectrum to points a%w and save in a%ae
-  !call interp(we,-1/pi*tmp2,a%w,a%ae)
 endif
 if(solver==3 .or. solver==4) then !Determine Default model on real axis
    if(ExtDefaultM) then

@@ -6,7 +6,10 @@ This is a program for doing analytical continuations using one of the methods:
 - Maximum Entropy Metod
 
 ## Compile
-Compile by copying the example Makefile: `src/Makefile_example` to `src/Makefile` and adjust it to fit to the current machine. In the `src` folder, run: `make` and the binary `NNLS_NNT_MEM` should be created.
+Compile by copying the example Makefile: `src/Makefile_example` to `src/Makefile` and adjust it to fit to the current machine.
+In the `src` folder, run: `make` and the binary `NNLS_NNT_MEM` should be created.
+LAPACK is required. 
+Quadruple precision modified LAPACK routines are stored in the folder `src/quad`.
 
 ## How to use it
 Run the program by executing the binary.
