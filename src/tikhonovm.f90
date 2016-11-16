@@ -9,125 +9,138 @@ end interface tikhonov
 contains
 
 subroutine dtikhonov(A,bo,mtr,pr,nonegx,x)
-!Finds Tikhonov SVD solution (using real variables):
-!  Filter away singular value components, using parameter alpha.
-!  x=sum_i=1^r s_i/(s_i^2+alpha^2) (u_i^dagger*b) v_i
-!  x is actually just a LS solution to slightly modified problem:
-!  |A      |     |b|
-!  |       |*x = | |=k*x=g, namely solves normal equation: k^T*k*x=k^T*g. So instead of LS solution for A and b, find LS solution for k and g.
-!  |alpha*I|     |0|
-!  Another way of formulating it: min_x |A*x-b|^2+|alpha*x|^2, for a fix alpha
-!  Optimal parameter alpha value can be obtained by minimizing ||res||_2+||x||_2 
-! If option nonegx=.true. is LS found under constrain of x=>0
-implicit none
-real(kind=16),intent(in) :: A(:,:)
-real(kind=16),intent(in) :: bo(:)
-integer,intent(in) :: mtr,pr
-logical,intent(in) :: nonegx
-real(kind=16),allocatable :: x(:)
-!internal 
-integer :: N,M,i,j
-real(kind=16),allocatable :: b(:),k(:,:),g(:),xt(:,:)
-integer :: na
-real(kind=16),allocatable :: alpha(:),res(:),norm(:)
-character(len=800) :: str
-real(kind=16) :: tmp
+    !  Finds Tikhonov SVD solution (using real variables):
+    !  Filter away singular value components, using parameter alpha.
+    !  x=sum_i=1^r s_i/(s_i^2+alpha^2) (u_i^dagger*b) v_i
+    !  x is actually just a LS solution to slightly modified problem:
+    !
+    !  |   A      |     |b|
+    !  |          |*x = | |=k*x=g,
+    !  | alpha*I  |     |0|
+    !
+    !  Thus, solve normal equation: k^T*k*x=k^T*g. So instead of LS solution for A and b, find LS solution for k and g.
+    !  Another way of formulating it: min_x |A*x-b|^2+|alpha*x|^2, for a fix alpha
+    !  Optimal parameter alpha value can be obtained by minimizing ||res||_2 + ||x||_2 
+    !  If option nonegx = .true. , the LS solution is found under the constrain of x => 0.
+    !
+    implicit none
+    real(kind=16),intent(in) :: A(:,:)
+    real(kind=16),intent(in) :: bo(:)
+    integer,intent(in) :: mtr,pr
+    logical,intent(in) :: nonegx
+    real(kind=16),allocatable :: x(:)
+    !internal 
+    integer :: N,M,i,j
+    real(kind=16),allocatable :: b(:),k(:,:),g(:),xt(:,:)
+    integer :: na  ! number of trial alpha values to loop over
+    real(kind=16),allocatable :: alpha(:),res(:),norm(:)
+    character(len=800) :: str
+    real(kind=16) :: tmp
 
-N=size(A,1)
-M=size(A,2)
-allocate(b(size(bo,1)))
-b=bo !copy
-allocate(k(N+M,M),g(N+M))
-na=60
-allocate(alpha(na),xt(M,na),res(na),norm(na))
-!alpha= [ (10q0**(-(3q0+(i-1q0)*(7q0-3q0)/(na-1q0))),i=1,na) ]
-alpha= [ (10q0**(-(7q0+(i-1q0)*(3q0-7q0)/(na-1q0))),i=1,na) ]
-open(54,file="output_tikhonov.dat")
-write(*,'(a,E10.3,a,E10.3)') "Try alphas between:",alpha(1)," and",alpha(na)
-write(54,'(a,E10.3,a,E10.3)') "Try alphas between:",alpha(1)," and",alpha(na)
-do i=1,na !loop over different alpha
-   write(*,'(a,E10.3)') "alpha=",alpha(i)
-   g=0q0
-   g(1:N)=b
-   k=0q0
-   k(1:N,1:M)=A
-   do j=1,M
-      k(N+j,j)=alpha(i)
-   enddo
-   if(nonegx) then
-      call nnls(k,g,mtr,pr,x) ! Pick your favourite LS solver routine, under constrain of x>0
-   else
-      !call ls(k,g,0,128,x) ! This LS solver since it seams to be the best.
-      call ls(k,g,mtr,pr,x) ! Pick your favourite LS solver routine.
-   endif
-   xt(:,i)=x
-   res(i)=sqrt(sum((matmul(A,x)-b)**2))   ! |A*x-b|
-   norm(i)=sqrt(sum(x**2))  ! |x|
-enddo
-do while(minval(alpha)==alpha(minloc(log(res*norm),1))) 
-   write(54,*) "Last alpha picked. Try even lower alphas"
-   write(*,*) "Last alpha picked. Try even lower alphas"
-   !tmp=alpha(na)
-   tmp=minval(alpha)
-   na=3
-   deallocate(alpha,xt,res,norm)
-   allocate(alpha(na),xt(M,na),res(na),norm(na))
-   !alpha= [ (10**(-(3q0+(i-1q0)*(9q0-3)/(na-1q0))),i=1,na) ]
-   alpha= [ (tmp*10**(-((i-1q0)*1q0/(na-1q0))),i=1,na) ]
-   alpha= [ (tmp*( 1q0-(i-1q0)*0.3q0/(na-1q0) ),i=1,na) ]
-   write(54,'(a,E10.3,a,E10.3)') "Try alphas between:",alpha(1)," and",alpha(na)
-   write(*,'(a,E10.3,a,E10.3)') "Try alphas between:",alpha(1)," and",alpha(na)
-   do i=1,na !loop over different alpha
-      write(*,'(a,E10.3)') "alpha=",alpha(i)
-      g=0q0
-      g(1:N)=b
-      k=0q0
-      k(1:N,1:M)=A
-      do j=1,M
-         k(N+j,j)=alpha(i)
-      enddo
-      if(nonegx) then
-         call nnls(k,g,mtr,pr,x) ! Pick your favourite LS solver routine, under constrain of x>0
-      else
-         !call ls(k,g,0,128,x) ! This LS solver since it seams to be the best.
-         call ls(k,g,mtr,pr,x) ! Pick your favourite LS solver routine.
-      endif
-      xt(:,i)=x
-      res(i)=sqrt(sum((matmul(A,x)-b)**2))   ! |A*x-b|
-      norm(i)=sqrt(sum(x**2))  ! |x|
-   enddo
-enddo
-write(*,'(a)') "Tikhonov output:"
-write(*,'(a)') "alpha      |A*x-b|         |x|"
-write(54,'(a)') "alpha      |A*x-b|         |x|"
-do i=1,na
-   write(*,'(3E15.5)') alpha(i),res(i),norm(i)
-   write(54,'(3E15.5)') alpha(i),res(i),norm(i)
-enddo
-write(*,*)
-str=int2str(na)
-str="("//trim(str)//"E13.4)"
-open(55,file="output_tikhonov_a.dat")
-do i=1,M
-   write(55,trim(str)) xt(i,:)
-enddo
-close(55)
-i=minloc(log(res*norm),1)
-write(*,'(a,E15.5,a,I4)') "Pick alpha=",alpha(i)," index=",i
-write(54,'(a,E15.5,a,I4)') "Pick alpha=",alpha(i)," index=",i
-close(54)
-x=xt(:,i)
-deallocate(b,alpha,xt,k,g,res,norm)
+    N=size(A,1)
+    M=size(A,2)
+    allocate(b(size(bo,1)))
+    b=bo !copy
+    allocate(k(N+M,M),g(N+M))
+    na=250
+    allocate(alpha(na),xt(M,na),res(na),norm(na))
+    alpha= [ ( 10q0**( - ( 7q0+(i-1)*(0q0-7q0)/(na-1q0) ) ), i=1,na ) ] ! the trial alpha values
+    open(54,file="output_tikhonov.dat")
+    write(*,'(a,E10.3,a,E10.3)') "Try alphas between:",alpha(1)," and",alpha(na)
+    write(54,'(a,E10.3,a,E10.3)') "# Try alphas between:",alpha(1)," and",alpha(na)
+    do i=1,na !loop over different alpha
+       write(*,'(a,E10.3)') "alpha=",alpha(i)
+       g=0q0
+       g(1:N)=b
+       k=0q0
+       k(1:N,1:M)=A
+       do j=1,M
+          k(N+j,j)=alpha(i)
+       enddo
+       if(nonegx) then
+          call nnls(k,g,mtr,pr,x) ! Pick your favourite LS solver routine, under constrain of x>0
+       else
+          call ls(k,g,mtr,pr,x) ! Pick your favourite LS solver routine. (mtr=0,pr=128 seems to be the best)
+       endif
+       xt(:,i) = x
+       res(i) = sqrt(sum((matmul(A,x)-b)**2))   ! |A*x-b|_2
+       norm(i) = sqrt(sum(x**2))                ! |x|_2
+    enddo
+    ! check now if the trial alpha values were well distributed or
+    ! if the L-curve routine picked either the first or the last alpha value.
+    ! In that case, define a new mesh.
+    do while( (alpha(1) == alpha(minloc(res*norm,1))) .or. (alpha(na) == alpha(minloc(res*norm,1))) ) 
+        if( alpha(1) == alpha(minloc(res*norm,1)) ) then
+            write(54,*) "# Smallest alpha picked. Try even smaller alphas."
+            write(*,*) "# Smallest alpha picked. Try even smaller alphas."
+            tmp = alpha(1)
+            na = 50
+            deallocate(alpha,xt,res,norm)
+            allocate(alpha(na),xt(M,na),res(na),norm(na))
+            alpha= [ ( tmp*( 0.1q0+(i-1q0)*0.9q0/(na-1q0) ),i=1,na ) ]  ! new trial alpha values
+        else 
+            write(54,'(a)') "# Largest alpha picked. Try even bigger alphas."
+            write(*,*) "# Largest alpha picked. Try even bigger alphas."
+            tmp = alpha(na)
+            na = 50
+            deallocate(alpha,xt,res,norm)
+            allocate(alpha(na),xt(M,na),res(na),norm(na))
+            alpha= [ ( tmp*( 1q0+(i-1q0)*9.0q0/(na-1q0) ),i=1,na ) ]  ! new trial alpha values
+        endif
+
+        write(54,'(a,E17.10,a,E17.10)') "# Try alphas between:",alpha(1)," and",alpha(na)
+        write(*,'(a,E17.10,a,E17.10)') "Try alphas between:",alpha(1)," and",alpha(na)
+        do i=1,na !loop over different alpha
+            write(*,'(a,E10.3)') "alpha=",alpha(i)
+            g=0q0
+            g(1:N)=b
+            k=0q0
+            k(1:N,1:M)=A
+            do j=1,M
+                k(N+j,j)=alpha(i)
+            enddo
+            if(nonegx) then
+                call nnls(k,g,mtr,pr,x) ! Pick your favourite LS solver routine, under constrain of x>0
+            else
+                call ls(k,g,mtr,pr,x) ! Pick your favourite LS solver routine. (mtr=0,pr=128 seems to be the best)
+            endif
+            xt(:,i)=x
+            res(i)=sqrt(sum((matmul(A,x)-b)**2))   ! |A*x-b|
+            norm(i)=sqrt(sum(x**2))  ! |x|
+        enddo
+    enddo
+    write(*,'(a)') "Tikhonov output:"
+    write(*,'(a)') "alpha      |A*x-b|         |x|"
+    write(54,'(a)') "# alpha      |A*x-b|         |x|"
+    do i=1,na
+       write(*,'(3E26.17)') alpha(i),res(i),norm(i)
+       write(54,'(3E26.17)') alpha(i),res(i),norm(i)
+    enddo
+    write(*,*)
+    str=int2str(na)
+    str="("//trim(str)//"E13.4)"
+    open(55,file="output_tikhonov_a.dat")
+    do i=1,M
+       write(55,trim(str)) xt(i,:)
+    enddo
+    close(55)
+    i=minloc(log(res*norm),1)
+    write(*,'(a,E15.5,a,I4)') "# Pick alpha=",alpha(i)," index=",i
+    write(54,'(a,E15.5,a,I4)') "# Pick alpha=",alpha(i)," index=",i
+    close(54)
+    x=xt(:,i)
+    deallocate(b,alpha,xt,k,g,res,norm)
 end subroutine
 
 subroutine dtikhonovDefaultModel(A,bo,xm,mtr,pr,nonegx,x)
 !Finds Tikhonov solution (using real variables) to fit also to default model xm:
-!  x is just a LS solution to problem:
-!  |A      |     |b|
-!  |       |*x = | |=k*x=g, namely solves normal equation: k^T*k*x=k^T*g. So instead of LS solution for A and b, find LS solution for k and g.
+! x is just a LS solution to problem:
+!  |A      |     |   b    |
+!  |       |*x = |        |   = k*x = g, namely solves normal equation: k^T*k*x=k^T*g. So instead of LS solution for A and b, find LS solution for k and g.
 !  |alpha*I|     |alpha*xm|
-!  Another way of formulating it: min_x |A*x-b|^2+|alpha*(x-xm)|^2, for a fix alpha
-!  Optimal parameter alpha value can be obtained by minimizing |A*x-b|^2+|x|^2 
+!
+! Another way of formulating it: min_x |A*x-b|^2+|alpha*(x-xm)|^2, for a fix alpha
+! Optimal parameter alpha value can be obtained by minimizing |A*x-b|^2+|x|^2 
 ! If option nonegx=.true. is LS found under constrain of x=>0
 implicit none
 real(kind=16),intent(in) :: A(:,:),bo(:),xm(:)

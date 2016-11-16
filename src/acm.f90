@@ -13,41 +13,56 @@ contains
 
 subroutine acs()
 implicit none
-call ac(a%w,a%f,a%am,a%wn,a%me,a%realasym(1),a%sweightm,a%a,a%ma,a%errs,a%errm) !returns spectrum rho,corresponding Matsubara value and errors errs and errm
+call ac(a%w,a%f,a%am,a%wn,a%me,a%rotation,a%realasym(1),a%sweightm,a%a,a%ma,a%errs,a%errm)
 end subroutine
 
-subroutine ac(w,f,am,wn,me,realasym,sweight,rho,ma,errs,errm)
+subroutine ac(w,f,am,wn,me,rotation,realasym,sweight,rho,ma,errs,errm)
+! returns spectrum rho,corresponding Matsubara value and errors errs and errm
 implicit none
-real(kind=16),intent(in) :: w(:),f(:),am(:),wn(:)
-complex(kind=16),intent(in) :: me(:)
-real(kind=16),intent(in) :: realasym,sweight
-real(kind=16),allocatable,intent(inout) :: rho(:)
-complex(kind=16),allocatable,intent(inout) :: ma(:)
-real(kind=16),allocatable,intent(out) :: errs(:)
-real(kind=16),intent(out) :: errm
+real(kind=16),intent(in)                   :: w(:)          ! real-energy points
+real(kind=16),intent(in)                   :: f(:)          ! integration weights
+real(kind=16),intent(in)                   :: am(:)         ! default model
+real(kind=16),intent(in)                   :: wn(:)         ! input points 
+complex(kind=16),intent(in)                :: me(:)         ! input values
+real(kind=16),intent(in)                   :: rotation(:,:) ! rotation matrix, assosicated with the covariance matrix
+real(kind=16),intent(in)                   :: realasym      ! realasym = int w*rho(w) dw
+real(kind=16),intent(in)                   :: sweight       ! sweight = int rho(w) dw
+real(kind=16),allocatable,intent(inout)    :: rho(:)        ! the spectral function
+complex(kind=16),allocatable,intent(inout) :: ma(:)         ! using the spectral function, the values obtained at the input points
+real(kind=16),allocatable,intent(out)      :: errs(:)       ! 3 types of errors
+real(kind=16),intent(out)                  :: errm          ! the error between the input points and those calculated from the spectral function.
 
-call rac(w,f,am,wn,me,realasym,sweight,rho,errs)
-call hilbert(w,f,rho,wn,ma) !calculate G(i*w_n,rho(w)) from hilbert transform
+call rac(w,f,am,wn,me,rotation,realasym,sweight,rho,errs)            ! the analytical continuation is really taken place in this routine
+call hilbert(w,f,rho,wn,ma)                                 ! calculate G(i*w_n,rho(w)) from hilbert transform
 errm=sqrt(sum(abs(ma-me)**2))
 end subroutine
 
-subroutine rac(w,f,am,wn,me,realasym,sweight,rho,errs) !returns spectrum rho and errs
+subroutine rac(w,f,am,wn,me,rotation,realasym,sweight,rho,errs)
+! Returns spectrum rho and errs.
 implicit none
-real(kind=16),intent(in) :: w(:),f(:),am(:),wn(:)
-complex(kind=16),intent(in) :: me(:)
-real(kind=16),intent(in) :: realasym,sweight
-real(kind=16),allocatable,intent(inout) :: rho(:)
-real(kind=16),allocatable,intent(out) :: errs(:)
-
-real(kind=16),allocatable :: k(:,:),b(:)
-real(kind=16),allocatable :: x(:),xam(:),x0(:) !temporary variables
-real(kind=16) :: tolx,tolf,tolg !convergence tolerances for MaxEnt
+real(kind=16),intent(in)                   :: w(:)          ! real-energy points
+real(kind=16),intent(in)                   :: f(:)          ! integration weights
+real(kind=16),intent(in)                   :: am(:)         ! default model
+real(kind=16),intent(in)                   :: wn(:)         ! input points 
+complex(kind=16),intent(in)                :: me(:)         ! input values
+real(kind=16),intent(in)                   :: rotation(:,:) ! rotation matrix, assosicated with the covariance matrix
+real(kind=16),intent(in)                   :: realasym      ! realasym = int w*rho(w) dw
+real(kind=16),intent(in)                   :: sweight       ! sweight = int rho(w) dw
+real(kind=16),allocatable,intent(inout)    :: rho(:)        ! the spectral function
+real(kind=16),allocatable,intent(out)      :: errs(:)       ! 3 types of errors 
+! help variables
+real(kind=16),allocatable                  :: k(:,:)        ! total matrix, including the kernel
+real(kind=16),allocatable                  :: b(:)          ! total rhs in the matrix equation, including the input values
+real(kind=16),allocatable                  :: x(:)          ! the solution for matrix equation
+real(kind=16),allocatable                  :: xam(:)        ! modified default model. Enters matrix equation.
+real(kind=16),allocatable                  :: x0(:)         ! starting solution, a guess. used in MEM
+! convergence tolerances for MaxEnt
+real(kind=16) :: tolx,tolf,tolg
+! dummy variables
 integer :: i,j,n,m
 
-real(kind=16),allocatable :: kc(:,:),bc(:)
-
-n=size(w,1)
-m=size(wn,1)
+n=size(w,1)  ! number of real energy points
+m=size(wn,1) ! number of input points
 
 !Print info about mathematical problem to solve to this file
 open(23,file=trim(proj)//"_info.dat",position="append")
@@ -80,7 +95,9 @@ else
    write(23,*) "No shift of real part is done before using Hilbert transform"
 endif
 
-!Build hilbert matrix that define analytic continuation problem
+!-------------------------------------------------------------------------------------------------
+!Build the hilbert matrix that define the analytic continuation problem.
+
 if(ftype==0) then
    if(sumrule) then
       allocate(k(2*m+1,n))
@@ -102,28 +119,38 @@ write(23,*) "size of matrix k, in k*rho=b, is (",size(k,1),",",size(k,2),")"
 if(ftype==4) then
    do i=1,m
       do j=1,n
-         k(i,j)=2q0*f(j)*(-w(j))/(wn(i)**2q0+w(j)**2q0)
+         k(i,j) = 2q0*f(j)*(-w(j))/(wn(i)**2q0+w(j)**2q0)
       enddo
    enddo
 else
    do i=1,m
       do j=1,n
-         k(i,j)=f(j)*(-w(j))/(wn(i)**2q0+w(j)**2q0)
-         k(m+i,j)=f(j)*(-wn(i))/(wn(i)**2q0+w(j)**2q0)
+         k(i,j) =   -f(j)*w(j)/( wn(i)**2q0+w(j)**2q0 )
+         k(m+i,j) = -f(j)*wn(i)/(wn(i)**2q0+w(j)**2q0 )
       enddo
    enddo
 endif
+
 if(ftype==0 .and. sumrule) then
    k(2*m+1,:)=f    !Im[G(i*w_n)] \approx -s/w_n. fit to s-value
 elseif(ftype==3) then
    k(2*m+1,:)=f    !Im[G(i*w_n)] \approx -s/w_n. fit to s-value
-   k(2*m+2,:)=f*w  !Re[G(i*w_n)] \approx -a/w_n^2 + b. fit to a-value
+   k(2*m+2,:)=f*w  !Re[G(i*w_n)] \approx -a/w_n^2 + b. b=0 due to symmetry. fit to a-value.
 endif
-!If ftype==2, function is boson, eg. susceptibility, reformulate rho(w)=sign(w)*rho(w), so should have only positive values.
+
+if(covariance /= 0) then
+    if(ftype==4) then
+        k = matmul(rotation,k)
+    else
+        k(1:2*m,:) = matmul(rotation,k(1:2*m,:))
+    endif
+endif
+
+!If ftype==2, function is bosonic, eg. a susceptibility. Reformulate rho(w)=sign(w)*rho(w) so should have only positive values.
 !This is done by transforming k=sign(w)*k and using sign(w)*am(:) as default model.
 allocate(xam(n))
 xam=am
-if(ftype==2) then !boson
+if(ftype==2) then !bosonic function
    do i=1,n
       if(w(i)<0) then
          k(:,i)=-k(:,i)
@@ -131,7 +158,10 @@ if(ftype==2) then !boson
       endif
    enddo
 endif
+
+!----------------------------------------------------------------------------------------------------
 !Matsubara input data and eventually extra constrains
+
 if(ftype==0) then
    if(sumrule) then
       allocate(b(2*m+1))
@@ -159,6 +189,14 @@ elseif(ftype==3) then
    b(2*m+2)=realasym
 endif
 
+if(covariance /= 0) then
+    if(ftype==4) then
+        b = matmul(rotation,b)
+    else
+        b(1:2*m) = matmul(rotation,b(1:2*m))
+    endif
+endif
+
 
 ! Test to add more weight on fitting to lower Matsubara points
 !do i=1,5
@@ -171,10 +209,7 @@ endif
 !k(2*m+1,:)=0.0001*k(2*m+1,:)
 !b(2*m+1)=0.0001*b(2*m+1)
 
-
-allocate(kc(size(k,1),size(k,2)),bc(size(b,1))) !copies
-kc=k
-bc=b
+!----------------------------------------------------------------------------------
 
 if(solver==1) then 
    if(ftype==0 .or. ftype==1 .or. ftype==2 .or. ftype==4) then

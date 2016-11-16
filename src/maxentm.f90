@@ -33,7 +33,9 @@ subroutine maxent(f,k,b,xm,x0,mtr,pr,nonegx,tolx,tolf,tolg,x)
 ! Starting minimisation with point x=x0
 
 implicit none
-real(kind=16),intent(in) :: f(:),k(:,:),b(:),xm(:),x0(:)
+real(kind=16),intent(in) :: f(:),k(:,:),b(:)
+real(kind=16),intent(in) :: xm(:)  ! default model
+real(kind=16),intent(in) :: x0(:)  ! starting point
 integer,intent(in) :: mtr,pr
 logical,intent(in) :: nonegx
 real(kind=16),intent(in) :: tolx,tolf,tolg !specifies convergence tolerance  
@@ -41,28 +43,28 @@ real(kind=16),allocatable :: x(:)
 
 real(kind=16),allocatable :: lam(:,:),eigen(:)
 integer :: n,m,i,ia
-integer :: ita,na
+integer :: ita
+integer :: na !number of trial alpha values
 real(kind=16) :: alpha,alpha_old
 real(kind=16),allocatable :: alphav(:),xt(:,:),qv(:),res(:),st(:)
 character(len=800) :: str
-na=25 !number of alphas
+na=25
 m=size(k,1)
 n=size(k,2)
 if(allocated(x)) deallocate(x)
 allocate(x(n))
 x=x0 !starting point in minimization precedure
 open(31,file="output_maxent.dat")
-write(31,'(a,E13.6,a,E13.6)') "Q(x0)=",Q(x),"   |grad(x0)|=",sqrt(sum(grad(x)**2))
+write(31,'(a,E23.15,a,E23.15)') "# Q(x0)=",Q(x),"   |grad(x0)|=",sqrt(sum(grad(x)**2))
 !Find optimal alpha according to Jarrel:
 !alpha_new = |k*x-b|^2/n*1/S(x)*sum_i e_i/(e_i+alpha), where e_i is eigenvalue to matrix lam
 !lam_{i,j} = sqrt(x_i) d^2L/(dx_i dx_j) sqrt(x_j) , where L is the likelihood function, in our case: L(x) = |k*x-b|^2
 !lam_{i,j}= sqrt(x_i) 2 (k^T*k)_{i,j} sqrt(x_j)
 allocate(lam(n,n),eigen(n))
 write(*,'(a)') "Start optimization of alpha"
-write(31,'(a)') "Start optimization of alpha"
+write(31,'(a)') "# Start optimization of alpha."
 alpha=10q0**(-2q0) !starting guess for alpha
 alpha_old=100*alpha
-write(31,'(a,E10.3)') "alpha=",alpha
 write(*,'(a,E10.3)') "alpha=",alpha
 ita=0
 do while( 5 < max(alpha_old/alpha,alpha/alpha_old) .and. ita < 10 ) !dalpha=max(alpha_old/alpha,alpha/alpha_old)
@@ -79,43 +81,41 @@ do while( 5 < max(alpha_old/alpha,alpha/alpha_old) .and. ita < 10 ) !dalpha=max(
    alpha=residue2(x)/m*1q0/(entropy(x))*sum(eigen/(eigen+alpha))  !update alpha
    if(alpha<0q0) then
       alpha=10**(-10q0)
-      write(31,'(a)') 'Negative alpha proposed. Use a small alpha instead.'
+      write(31,'(a)') '# Negative alpha proposed. Use a small alpha instead.'
    endif
    !mixing old and new alpha
    alpha = 10q0**(log(alpha*alpha_old)/(2*log(10q0)))
    if(alpha<1.1*10**(-10q0) ) then
-      write(31,'(a)') "alpha smaller than 10^(-10) proposed in the iterative algorithm."
-      write(31,'(a)') "alpha put to 10^(-10) instead."
+      write(31,'(a)') "# alpha smaller than 1.1*10^(-10) proposed in the iterative algorithm."
+      write(31,'(a)') "# alpha put to 10^(-10) instead."
       alpha=10q0**(-10q0)
       exit
    else
-      write(31,*) "alpha=",alpha
       write(*,*) "alpha=",alpha
    endif
 enddo
 deallocate(lam,eigen)
 
 write(31,'(a)') 
-write(*,'(a)') "Start exploring L-curve for optimal alpha"
-write(31,'(a)') "Start exploring L-curve for optimal alpha"
-write(31,'(a,E10.3)') "Search around converged alpha value, which is alpha=",alpha
+write(*,'(a)') "# Start exploring L-curve for optimal alpha"
+write(31,'(a)') "# Start exploring L-curve for optimal alpha"
+write(31,'(a,E18.10)') "# Search around converged alpha value, which is alpha=",alpha
+na = 50
 allocate(alphav(na),xt(n,na),qv(na),res(na),st(na))
 st = -1
-!alphav= [ (10q0**(-(8q0+(i-1q0)*(12q0-8q0)/(na-1q0))),i=1,na) ]
-alphav= [ (alpha*10q0**(-(-3q0+(i-1q0)*(3q0+2q0)/(na-1q0))),i=1,na) ]
+alphav= [ ( alpha*10q0**(3q0-(i-1q0)*(3q0+2q0)/(na-1q0)),i=1,na ) ]
 ia=0
 do ita=1,na !Loop A
    ia=ia+1
    alpha=alphav(ita)
-   write(31,'(a,E10.3)') "alpha=",alpha
    write(*,'(a,E10.3)') "alpha=",alpha
    call minQ() !update x
    !save solution for particular alpha
-   xt(:,ita)=x
-   qv(ita)=Q(x) 
-   res(ita)=sqrt(residue2(x)) ! |A*x-b|
-   st(ita)=entropy(x)  ! S , entropy
-   if (isnan(qv(ita))) return  ! check for NaN 
+   xt(:,ita) = x
+   qv(ita) = Q(x)               
+   res(ita) = sqrt(residue2(x)) ! |A*x-b|
+   st(ita) = entropy(x)         ! S , entropy
+   if (isnan(qv(ita))) return   ! check for NaN 
 enddo !end loop A
 !count number of alphas giving positive entropy. Want at least two.
 i=0
@@ -124,15 +124,15 @@ do ita=1,ia
 enddo
 
 do while(i<2) !If less than two solutions with positive entropy, try smaller alphas
-   write(31,'(a)') "Only",i,"solutions with positive entropy found." 
-   write(31,'(a)') "Try to use smaller alphas. use alpha from",alpha*10**(1q0)," down to",alpha*10**(-0.5q0)
-   alphav= [ (alpha*10q0**(-(-1q0+(i-1q0)*(0.5q0+1q0)/(na-1q0))),i=1,na) ]
+   write(31,'(a)') "# Only",i,"solutions with positive entropy found." 
+   write(31,'(a)') "# Try to use smaller alpha values."
+   alphav= [ (alpha*(1q0 - 0.5q0*(i-1q0)/(na-1q0)),i=1,na) ]
+   write(31,'(a,E15.5,a,E15.5)') "# Start with alpha value",alphav(1)," and decrease to alpha value",alphav(na)
    ia=0
    st = -1
    do ita=1,na !Loop A
       ia=ia+1
       alpha=alphav(ita)
-      write(31,'(a,E10.3)') "alpha=",alpha
       write(*,'(a,E10.3)') "alpha=",alpha
       call minQ() !update x
       !save solution for particular alpha
@@ -148,11 +148,11 @@ do while(i<2) !If less than two solutions with positive entropy, try smaller alp
       if(st(ita)>0) i=i+1
    enddo
 enddo
-write(31,'(I4,a)') i," solutions with positive entropy found."
-write(31,'(a)') "Sweep over different alphas is finished. Summary of the sweep:"
-write(31,'(a)') "       alpha          Q(x)         |A*x-b|^2        S         |A*x-b|^2*S"
+write(31,'(a,I4,a)') '# ',i," solutions with positive entropy found."
+write(31,'(a)') "# Sweep over different alphas is finished. Summary of the sweep:"
+write(31,'(a)') "#       alpha          Q(x)         |A*x-b|^2        S         |A*x-b|^2*S"
 do i=1,na
-   write(31,'(5E15.5)') alphav(i),qv(i),res(i)**2,st(i),res(i)**2*st(i)
+   write(31,'(5E23.15)') alphav(i),qv(i),res(i)**2,st(i),res(i)**2*st(i)
 enddo
 str=int2str(na)
 str="("//trim(str)//"E13.4)"
@@ -161,14 +161,15 @@ do i=1,n
    write(54,trim(str)) xt(i,:)
 enddo
 close(54)
-i=minloc(log(res**2*st),1)
+i=minloc(res**2*st,1)
 x=xt(:,i)
 alpha=alphav(i)
-write(31,'(a,E15.5,a,I4)') "Pick alpha=",alpha," index=",i
+write(31,'(a,E15.5,a,I4,a,I4,a)') '# Picked alpha:',alpha,'. Index=',i,' (of',na,' possible).' 
+write(*,'(a,E15.5,a,I4,a,I4,a)') 'Picked alpha:',alpha,'. Index=',i,' (of',na,' possible).' 
 
 write(31,*)
-write(31,'(a,E15.6,a,E15.6)') "Q(x)=",Q(x),"  |grad(x)|=",sqrt(sum(grad(x)**2))
-write(31,'(a,E15.6,a,E15.6)') "Q(xm)=",Q(xm),"  |grad(xm)|=",sqrt(sum(grad(xm)**2))
+write(31,'(a,E15.6,a,E15.6)') "# Q(x=defaultmodel)=",Q(xm),"  |grad(x=defaultmodel)|=",sqrt(sum(grad(xm)**2))
+write(31,'(a,E15.6,a,E15.6)') "# Q(x)=",Q(x),"  |grad(x)|=",sqrt(sum(grad(x)**2))
 close(31)
 deallocate(alphav,xt,qv,res,st)
 
@@ -214,17 +215,17 @@ contains
             exit
          else
             write(31,*)
-            write(31,*) "Don't update a since a+da<0 which is the wrong direction"
-            write(31,*) "ic=",ic
-            write(31,*) "a=",a
-            write(31,*) "da=",da(1)
-            write(31,*) "a+da=",a+da(1)
+            write(31,*) "# Don't update a since a+da<0 which is the wrong direction"
+            write(31,*) "# ic=",ic
+            write(31,*) "# a=",a
+            write(31,*) "# da=",da(1)
+            write(31,*) "# a+da=",a+da(1)
             write(31,*)
             exit
             !stop "negative da should never happen..."
          endif
       enddo
-      write(31,'(I5,a)') ic," iterations in Loop C."
+      write(31,'(a,I5,a)') '# ',ic," iterations in Loop C."
 
       !Method 4: Use factor times amax in the Newton step.
       !a=0.1*amax
@@ -252,19 +253,19 @@ contains
       !"  |grad(xold)-grad(x)|/|grad(x)|=",sqrt(sum((grad(xold)-grad(x))**2))/sqrt(sum(grad(x)**2))
       !Check if to exit loop B
       if(sqrt(sum((xold-x)**2))/sqrt(sum(x**2)) < tolx ) then !relative change in x 
-         write(31,'(a)') "Relative change in x considered converged"
+         write(31,'(a)') "# Relative change in x considered converged"
          exit
       elseif(abs(Q(xold)-Q(x))/Q(x) < tolf ) then !relative change in function
-         write(31,'(a)') "Relative change in function considered converged"
+         write(31,'(a)') "# Relative change in function considered converged"
          exit
       elseif(sqrt(sum((grad(xold)-grad(x))**2))/sqrt(sum(grad(x)**2)) < tolg ) then !relative change in gradient
-         write(31,'(a)') "Relative change in gradient considered converged"
+         write(31,'(a)') "# Relative change in gradient considered converged"
          exit
       endif
    enddo !end loop B
    
-   write(31,'(I5,a)') ib," iterations in Loop B."
-   if(ib==ibmax) write(31,'(a)') "Warning: Minimazation using Newton calculation did not converge"
+   write(31,'(a,I5,a)') '# ',ib," iterations in Loop B."
+   if(ib==ibmax) write(31,'(a)') "# Warning: Minimazation using Newton calculation did not converge"
    write(31,*)
    deallocate(dx,da,xold)
    end subroutine

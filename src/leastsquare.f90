@@ -82,7 +82,9 @@ subroutine nnls(A,b,mtr,pr,x)
           deallocate(C)
           !Remove t from R. 
           if(size(R,1)==1) then
+             write(*,*) 'allocated(R) = ',allocated(R)
              deallocate(R)
+             write(*,*) 'After deallocatation of R '
           else
              allocate(C(size(R,1)))
              C=R
@@ -111,7 +113,6 @@ subroutine nnls(A,b,mtr,pr,x)
              z(P(i))=zs(i)
           enddo
           deallocate(zs,E)
-
           if(ib==0 .and. z(t)<=0q0) then
              !w(t) is probably very small positive.
              !should have been zero but due to round off..
@@ -251,12 +252,17 @@ subroutine nnls(A,b,mtr,pr,x)
           D=C(1:k)
           deallocate(C)
           !Add P(D) to R
-          allocate(C(size(R,1)+k))
-          C(1:size(R,1))=R
-          C(size(R,1)+1:size(R,1)+k)=P(D)
-          deallocate(R)
+          if(allocated(R)) then
+            allocate(C(size(R,1)+k))
+            C(1:size(R,1)) = R
+            C(size(R,1)+1:size(R,1)+k)=P(D)
+            deallocate(R)
+          else
+            allocate(C(k))
+            C(1:k) = P(D)
+          endif
           allocate(R(size(C,1)))
-          R=C
+          R = C
           deallocate(C)
           !Remove P(D) from P
           if(size(P,1)-k==0) then
@@ -296,7 +302,8 @@ subroutine nnls(A,b,mtr,pr,x)
     if(allocated(R)) deallocate(R)
     if(allocated(F)) deallocate(F)
     if(allocated(P)) deallocate(P)
-    deallocate(z,w)
+    if(allocated(z)) deallocate(z)
+    if(allocated(w)) deallocate(w)
 
     !write(*,'(a,I5,a)') "Did ",ib,"loop B iterations in total"
     write(*,'(a,I5,a)') "Did ",ia," loop A iterations"
@@ -558,7 +565,7 @@ subroutine dgelsdwrapper(A,b,pr)
        elseif(info>0) then
           stop "SVD failed to converge"
        endif
-       lwork=workd(1)
+       lwork=int(workd(1))
        liwork=iwork(1)
        deallocate(workd,iwork)
        allocate(workd(lwork),iwork(liwork))
@@ -576,7 +583,7 @@ subroutine dgelsdwrapper(A,b,pr)
        elseif(info>0) then
           stop "SVD failed to converge"
        endif
-       lwork=work(1)
+       lwork=int(work(1))
        liwork=iwork(1)
        deallocate(work,iwork)
        allocate(work(lwork),iwork(liwork))

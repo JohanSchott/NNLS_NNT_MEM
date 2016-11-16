@@ -227,4 +227,40 @@ subroutine getParticularIndices(inputfile,startindex,q,wsplit,wend,p,ind,wn,Gn)
    deallocate(v)
 end subroutine getParticularIndices
 
+subroutine get_rotation_matrix(f_cov,covariance,ftype,M,rotation)
+    ! read data from file f_cov and return in matrix: rotation
+    implicit none
+    character(len=*),intent(in)              :: f_cov         ! file name
+    integer,intent(in)                       :: covariance    ! 0: do not read from file f_cov
+    integer,intent(in)                       :: ftype         ! if ftype=4, rotation matrix should have dimensions (M,M), otherwise dimensions (2*M,2*M)
+    integer,intent(in)                       :: M             ! number of input points to use
+    real(kind=16),allocatable,intent(out)    :: rotation(:,:) ! matrix to read from file f_cov 
+    ! help variables
+    integer                                  :: i,k
+
+    if(covariance == 0) return  ! do nothing in this case
+
+    k = filelen(f_cov)    
+    if(ftype==4) then
+        if(k /= M) then
+            write(*,*) "k=",k,"M=",M
+            stop "Rotation matrix associated with the covariance matrix has the wrong size"
+        endif
+        allocate(rotation(k,k))
+    else
+        if(k /= 2*M) then
+            write(*,*) "k=",k,"M=",M
+            stop "Rotation matrix associated with the covariance matrix has the wrong size"
+        endif
+        allocate(rotation(k,k))
+    endif
+    ! read in data from file
+    open(74,file=trim(f_cov))    
+    do i=1,k
+        read(74,*) rotation(i,:)
+    enddo
+    close(74) 
+
+end subroutine
+
 end module

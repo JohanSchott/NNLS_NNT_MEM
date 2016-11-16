@@ -5,7 +5,7 @@ contains
 
 integer function filelen(filen) !Counts number of rows in file filen
 implicit none
-character(len=800),intent(in) :: filen
+character(len=*),intent(in) :: filen
 integer :: i,ok
 character(len=800) :: tmp
 open(77,file=trim(filen))

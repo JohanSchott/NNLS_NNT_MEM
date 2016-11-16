@@ -1,32 +1,37 @@
-#Input file for doing analytic continuation
-#proj. simulation name: 
-1
-#fm. matsubara input file name
-input.dat
+#Input file for doing analytic continuation.                
+# proj. simulation name: 
+1                
+# fm. input data file name:
+xm.dat   
+# covariance. 0:no covariance is read. 1:the cholesky matrix W from covariance^-1 = W^T*W is read.
+0                                
+# cov_file
+W.dat
 #nasym, qasym. last number to use for finding real shift and procentage of Matsubara points used for fit
 30 0.2
 #first. Which first Matsubara point to use for fitting
 1
 #M. number of Matsubara points to use
-98
+51
 #N. number of energy points 
-80
+48
 #wmin,wmax. real axis energy window
-0.00001 4.0
+0.01 3.00
 #rmeshtype. 0 for linear, 1 for logaritmic (gamma=0.5)
 1
 #Analytic continuation settings
-#ftype. 0 for Fermion, 1 for Self-energy, 2 for Susceptibility, 3 for Weird Fermion and 4 for odd spectral susceptibility. 
-#f(z)=b+int 1/(z-w)*rho(w)dw. Asymptote: f(i*w_n) \approx b-a/w_n^2-i*s/w_n, with s=int rho(w)dw
-#Fermion: rho(w)>=0. b=0, s=1. a can be estimated but it's not used in the fitting. Can have a second argument, if it's .false. , s=1 condition is removed
+#ftype. 0:Fermionic Green's function, 1:Self-energy, 2:Susceptibility, 3:Weird Fermion and 4:odd spectral susceptibility. 
+#f(z) = b+int 1/(z-w)*rho(w)dw. Asymptote: f(i*w_n) \approx b-a/w_n^2-i*s/w_n, with s=int rho(w)dw
+#Fermionic Green's function: rho(w)>=0. b=0, s=1. a can be estimated but it's not used in the fitting. Can have a second argument, if it's .false. , s=1 condition is removed
 #Self-energy: rho(w)>=0. b,s and a can be estimated but only b is used in fitting.
-#Susceptibility: sgn(w)*rho(w)>=0. b=0. s and a can be estimated but are not used in fitting.
-#Weird Fermion: rho(w)>=0. b=0.s and a can be estimated and all are used in fitting.
+#Susceptibility: sgn(w)*rho(w)>=0. b=0. s and a can be estimated but are not used in the fitting.
+#Weird Fermion: rho(w)>=0. b=0.s and a can be estimated and all are used in the fitting.
+#Odd susceptibility: rho(w) = -rho(-w). rho(w)>=0 for w>=0. b=s=0. a can be estimated but is not used in the fitting. Use real-axis mesh with positive energies.
 4
 #sumrule. Only used for ftype==0. If .false., s=1 is not a condition.
 .false.
 #solver. 1 for LS, 2 for Tikhonov with min |rho|^2, 3 for Tikhonov with min |rho-am|^2, 4 for MEM with entropy S=int rho*ln(rho/am)dw
-1
+2
 #ExtDefaultM. If to use external default model from file. If .false., use constant with s=1. This is only used if solver=3 or solver=4
 .false.
 #fam. path to external default model (three columns: w Re Im). Used only if ExtDefaultM=.true. & solver==3 or solver==4
@@ -41,4 +46,4 @@ path of external default model on the real axis
 #exact. if real axis solution exists
 .true.
 #fe. file name for exact real axis function
-exact.dat
+real.dat

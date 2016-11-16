@@ -16,7 +16,10 @@ contains
 
 subroutine readinp()
 implicit none
-character(len=800) :: fm,fam,fe ! Matsubara file, default spectra file, exact real axis file
+character(len=800) :: fm    ! Matsubara file
+character(len=800) :: f_cov ! covariance file
+character(len=800) :: fam   ! default model file (can be used in MEM and Tikhonov)
+character(len=800) :: fe    ! exact real axis file
 logical :: ExtDefaultM ! when use default model, if read it from real file
 integer :: first !first Matsubara index to fit to
 integer :: rmeshtype
@@ -36,6 +39,10 @@ read(54,'(a)') proj
 read(54,'(a)') 
 read(54,'(a)') fm
 read(54,'(a)') 
+read(54,*) covariance
+read(54,'(a)') 
+read(54,'(a)')  f_cov
+read(54,'(a)') 
 read(54,*) nasym,qasym
 read(54,'(a)') 
 read(54,*) first
@@ -47,6 +54,7 @@ read(54,'(a)')
 read(54,*) a%wmin,a%wmax
 read(54,*)
 read(54,*) rmeshtype
+read(54,*)
 read(54,*)
 read(54,*)
 read(54,*)
@@ -83,6 +91,8 @@ write(23,'(a)') "Program version: 2.0"
 write(23,*)
 write(23,*) '#Parameter values read and used from input file:'
 write(23,*) 'fm: ',trim(fm)
+write(23,*) 'covariance:',covariance
+if(covariance /= 0) write(23,*) 'f_cov: ',trim(f_cov)
 write(23,*) 'nasym=',nasym,'qasym=',qasym
 write(23,*) 'first=',first
 write(23,*) 'M=',a%M
@@ -103,7 +113,7 @@ if(exact) then
    write(23,*) 'fe:',trim(fe)
 endif
 write(23,*) " "
-write(23,*) "#Output information:"
+write(23,*) "# Output information:"
 write(23,*) " "
 close(23)
 
@@ -117,17 +127,21 @@ allocate(a%me(a%M))
 allocate(a%am(a%N))
 allocate(a%ae(a%N))
 
-
-a%realasym=getrealasym(fm,nasym,qasym) !find estimates for a and b in Re[G(i*w_n)] \approx b-a/w_n^2
-a%sweightm=getsweightm(fm,nasym,qasym) !find estimates for s in Im[G(i*w_n)] \approx -s/w_n
+a%realasym=getrealasym(fm,nasym,qasym)  !find estimates for a and b in Re[G(i*w_n)] \approx b-a/w_n^2
+a%sweightm=getsweightm(fm,nasym,qasym)  !find estimates for s in Im[G(i*w_n)] \approx -s/w_n
 call getIndices(fm,first,a%M,a%wn,a%me) !pick selected Matsubara points.  
+
+call get_rotation_matrix(f_cov,covariance,ftype,a%M,a%rotation)
+
 open(23,file=trim(proj)//"_info.dat",position="append")
+
+! shift the real part of the input values, by asymptotic value.
 if(ftype==1) then
    write(*,*) "Shift realpart on Matsubara axis by estimated value from: Re[G(i*w_n)] \approx -a/w_n^2 + b for big w_n"
    write(23,*) "Shift realpart on Matsubara axis by estimated value from: Re[G(i*w_n)] \approx -a/w_n^2 + b for big w_n"
    a%me=a%me-a%realasym(2) !shift real part
-   !a%me=a%me-0.6906919 !shift real part
 endif
+
 write(*,'(a,F14.7)') "From input data, estimate b=",a%realasym(2)
 write(23,'(a,F14.7)') "From input data, estimate b=",a%realasym(2)
 write(*,'(a,F14.7)') "From input data, estimate a=",a%realasym(1)

@@ -18,6 +18,7 @@ call saveac() !save real axis information and how well attained function fits to
 deallocate(a%w)
 deallocate(a%f)
 deallocate(a%wn)
+if(allocated(a%rotation)) deallocate(a%rotation)
 deallocate(a%a,a%ra)
 deallocate(a%ma,a%me,a%am)
 if(exact) then
