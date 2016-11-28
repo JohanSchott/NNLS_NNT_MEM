@@ -12,7 +12,11 @@ subroutine maxent(f,k,b,xm,x0,mtr,pr,nonegx,tolx,tolf,tolg,x)
 !   min_{x} Q(x,alpha)
 
 ! Q(x,alpha) = |k*x-b|^2 + alpha*S[x,xam] 
-! with S=int x*ln(x/xm) , where S>0 for x/=xam and S=0 for x=xam
+! with S[x] = int x*ln(x/xm), where S > 0 for x /= xam and S=0 for x=xam
+! Note this is equivalent to the alternative formulation appearing in literature:
+! Q(x,alpha) = |k*x-b|^2 - alpha*S[x,xam] 
+! with S[x] = - int x*ln(x/xm), where S < 0 for x /= xam and S=0 for x=xam
+! 
 
 ! Returns vector x 
 
