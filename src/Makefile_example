@@ -1,80 +1,104 @@
+#
+# Makefile for Fortran program. 
+#
+# -------------------------------------------------------------------------------------------------------------------
 # Modules
+
+# On India:
+# module load gcc/default  atlas/3.9.33/gcc openmpi/default
 
 # On Matter:
 # module load intel/12.1.4  mkl/10.3.10.319
 
-# On India:
-# module load gcc/default  atlas/3.9.33/gcc
+# On Milou:
+# module load intel/13.1  intelmpi/4.1
 
-#--------------------------------------------------------------------------------------------------------------------------
-# object files
-OBJS = fz.o settingm.o matlab.o openm.o savem.o leastsquare.o tikhonovm.o asym.o eigenm.o maxentm.o input.o smearm.o gitversion.o readinpm.o acm.o saveacm.o main.o
-
-# binary:
-PROG =  ./NNLS_NNT_MEM
-
-#-----------------------------------------------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------------------------------------------
 
 # Libraries
 
+# On local machine:
+LIBDIR = -L"${LAPACKPATH}"  -L"quad/zgels/zgels_quad" -L"quad/dgelsd/dgelsd_quad"
+LDLIBS =  -llapack -lrefblas -ltmglib  -lzgelsquad -ldgelsdquad
+
 # On India:
-#LIBS =  -L"quad/dgels/dgels_quad" -ldgelsdquad -L"quad/zgels/zgels_quad" -lzgelsquad -L${LIBRARY_PATH}  -llapack -lf77blas -lcblas -latlas 
+#LIBDIR = -L${LIBRARY_PATH}  -L"quad/zgels/zgels_quad" -L"quad/dgelsd/dgelsd_quad"
+#LDLIBS = -llapack -lf77blas -lcblas -latlas   -lzgelsquad -ldgelsdquad
+
+# On Matter:
+#LIBDIR =  -L"quad/zgels/zgels_quad" -L"quad/dgelsd/dgelsd_quad"
+#LDLIBS =  -Nmkl -mkl=sequential  -lzgelsquad -ldgelsdquad
+
+# On Milou:
+#LIBDIR = -L${LIBRARY_PATH} -L"quad/zgels/zgels_quad" -L"quad/dgelsd/dgelsd_quad"
+#LDLIBS = -lzgelsquad -ldgelsdquad
+
+# -------------------------------------------------------------------------------------------------------------------
+
+# Compilers
+
+# On local machine:
+FCOMPILER = gfortran
+F90FLAGS =  -O2 # -fopenmp -g -Wall -fbounds-check -Waliasing -fdump-core  -Wreturn-type 
+
+# On India:
+#FCOMPILER = gfortran  
+#F90FLAGS =  -O2 # -fopenmp -g #-Wall -fbounds-check -Waliasing -fdump-core  -Wreturn-type 
 
 # On matter:
-#LIBS = -L"quad/dgels/dgels_quad" -ldgelsdquad -L"quad/zgels/zgels_quad" -lzgelsquad -Nmkl -mkl=sequential
-
-# On local computer:
-LIBS =  -L"quad/dgels/dgels_quad" -ldgelsdquad -L"quad/zgels/zgels_quad" -lzgelsquad -L"${LAPACKPATH}" -llapack -lrefblas
-
-#-----------------------------------------------------------------------------------------------------------------------
-
-# Compiler
-
-# On matter:
-#F90 = ifort 
+#FCOMPILER = ifort 
 #F90FLAGS =  -O2
 
-# On India:
-#F90 = gfortran 
-#F90FLAGS =  -O2 # -fopenmp  -g -Wall -fbounds-check -Waliasing -fdump-core  -Wreturn-type 
+# On Milou:
+#FCOMPILER = mpiifort 
+#F90FLAGS = -lmkl_intel_lp64 -lmkl_sequential -lmkl_core
 
-# On local computer:
-F90 = gfortran
-F90FLAGS = -O0   -g -Wall -fbounds-check -Waliasing -fdump-core  -Wreturn-type
 
-LDFLAGS = $(LIBS)
+# -------------------------------------------------------------------------------------------------------------------
 
-#-----------------------------------------------------------------------------------------------------------------------
+%.o: %.F90       # if any file with .o looking at, also consider .F90 files with the same name
+	$(FCOMPILER) $(F90FLAGS) -c $<
+
+%.o: %.f90
+	$(FCOMPILER) $(F90FLAGS) -c $<
+
+%.o: %.cpp
+	$(CC) $(INCLUDE) $(LIBS) -c $<
+
+
+# binary:
+PROG =  NNLS_NNT_MEM
+
+# object files
+OBJS = fz.o settingm.o matlab.o openm.o savem.o leastsquare.o tikhonovm.o asym.o eigenm.o maxentm.o input.o smearm.o gitversion.o readinpm.o acm.o saveacm.o main.o
 
 all: gitR $(PROG)
 
 gitR: gitversion_template.f90
 	./setgitversion.sh 
 
-
 $(PROG): $(OBJS)
-	$(F90) $(LDFLAGS) -o $@ $(OBJS) $(LIBS)
+	$(FCOMPILER) $^ $(LIBDIR) $(LDLIBS) -o $(@)
 
-clean:
-	rm -f $(PROG) $(OBJS) *.mod
+# dependence of each routine to other routines
+main.o: readinpm.o acm.o saveacm.o 
+saveacm.o: fz.o savem.o settingm.o matlab.o smearm.o
+acm.o: fz.o settingm.o tikhonovm.o maxentm.o savem.o
+readinpm.o: fz.o settingm.o openm.o input.o leastsquare.o asym.o savem.o gitversion.o
+gitversion.o:
+smearm.o:
+input.o: matlab.o
+maxentm.o: leastsquare.o eigenm.o
+eigenm.o:
+asym.o: leastsquare.o openm.o
+tikhonovm.o: leastsquare.o
+leastsquare.o: matlab.o
+savem.o:
+openm.o: matlab.o
+matlab.o:
+settingm.o:
+fz.o:
 
-
-.SUFFIXES: $(SUFFIXES) .f90 .F90 .f .cpp
-
-.f.o:
-	$(F77) $(F77FLAGS) -c $<
-.f90.o:
-	$(F90) $(F90FLAGS) -c $<
-.F90.o:
-	$(F90) $(F90FLAGS) -c $<
-.f90.mod:
-	$(F90) $(F90FLAGS) -c $<
-.F90.mod:
-	$(F90) $(F90FLAGS) -c $<
-
-.mod.o:
-	$(F90) $(F90FLAGS) -c $<
-
-.cpp.o:
-	$(CC) $(INCLUDE) $(LIBS) -c $<
-
+pristine:
+	rm -f *.o
+	rm -f $(PROG)
